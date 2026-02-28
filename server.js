@@ -1,17 +1,15 @@
 const express = require('express');
 const cors = require('cors');
 
-// BẮT BUỘC DÙNG SECRET KEY (sk_live_...) CHO BACKEND
-// Lưu ý: Key này là mã bảo mật, không được để lộ trên frontend HTML
+// Cấu hình Stripe Secret Key (BẮT BUỘC DÙNG sk_live_...)
 const stripe = require('stripe')('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'); 
 
 const app = express();
 
-// Cho phép gọi API từ website của bạn mà không bị lỗi CORS
 app.use(cors()); 
 app.use(express.json());
 
-// API tạo Payment Intent cho khung nhập thẻ Stripe Elements
+// API tạo Payment Intent cho Stripe Elements
 app.post('/create-payment-intent', async (req, res) => {
     try {
         const { items, shipping } = req.body; 
@@ -31,7 +29,7 @@ app.post('/create-payment-intent', async (req, res) => {
             payment_method_types: ['card'],
         });
 
-        // Trả mã bảo mật client_secret về cho Frontend để mở khóa ô nhập thẻ
+        // Trả mã bảo mật client_secret về cho Frontend
         res.json({ clientSecret: paymentIntent.client_secret });
 
     } catch (error) {
