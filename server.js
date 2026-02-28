@@ -1,59 +1,41 @@
 const express = require('express');
 const cors = require('cors');
-// Điền Secret Key của bạn vào đây (Bắt đầu bằng sk_test_...)
+
+// DÙNG SECRET KEY (sk_live_...) Ở ĐÂY TRONG SERVER
 const stripe = require('stripe')('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'); 
 
 const app = express();
 
-// Cho phép Frontend (HTML) gọi API đến Backend mà không bị lỗi CORS
+// Cho phép gọi API từ web Firebase của bạn
 app.use(cors()); 
-// Cho phép đọc dữ liệu JSON gửi lên từ Frontend
 app.use(express.json());
 
-// Tạo API endpoint để Frontend gọi đến
-app.post('/create-checkout-session', async (req, res) => {
+// API tạo Payment Intent cho khung nhập thẻ trực tiếp
+app.post('/create-payment-intent', async (req, res) => {
     try {
-        const { items } = req.body; // Lấy giỏ hàng từ Frontend
+        const { items, shipping } = req.body; 
 
-        // 1. Chuyển đổi giỏ hàng sang định dạng mà Stripe yêu cầu (line_items)
-        const lineItems = items.map(item => {
-            return {
-                price_data: {
-                    currency: 'usd',
-                    product_data: {
-                        // Tên hiển thị trên trang thanh toán Stripe
-                        name: `${item.product.name} (Color: ${item.color}, Size: US ${item.size})`,
-                        images: [item.product.image], // Hiển thị ảnh giày
-                    },
-                    // Stripe tính tiền bằng cent ($1 = 100 cents) nên phải nhân với 100
-                    unit_amount: Math.round(item.product.price * 100), 
-                },
-                quantity: 1, // Số lượng mỗi dòng sản phẩm
-            };
-        });
+        // Tính tổng tiền (Tiền hàng + Phí ship)
+        let totalAmount = items.reduce((sum, item) => sum + item.product.price, 0);
+        totalAmount += (shipping || 0);
 
-        // 2. Tạo Checkout Session với Stripe
-        const session = await stripe.checkout.sessions.create({
+        // Tạo PaymentIntent với số tiền chính xác
+        const paymentIntent = await stripe.paymentIntents.create({
+            amount: Math.round(totalAmount * 100), // Stripe tính bằng cent
+            currency: 'usd',
             payment_method_types: ['card'],
-            line_items: lineItems,
-            mode: 'payment',
-            // URL chuyển về khi thanh toán THÀNH CÔNG (Thay đổi port 5500 cho khớp với port bạn đang mở file HTML)
-            success_url: 'https://sneakers-e9c01.web.app/index.html?status=success', 
-            // URL chuyển về khi khách hàng bấm HỦY (Quay lại trang chủ)
-            cancel_url: 'https://sneakers-e9c01.web.app/index.html?status=cancel',
         });
 
-        // 3. Trả Session ID về cho Frontend
-        res.json({ id: session.id });
+        // Trả mã bảo mật client_secret về cho HTML để mở khóa thanh toán
+        res.json({ clientSecret: paymentIntent.client_secret });
 
     } catch (error) {
-        console.error("Lỗi tạo session:", error);
+        console.error("Lỗi:", error);
         res.status(500).json({ error: error.message });
     }
 });
 
-// Chạy server ở cổng 4242
-const PORT = 4242;
+const PORT = process.env.PORT || 4242;
 app.listen(PORT, () => {
-    console.log(`Node.js server đang chạy tại: http://localhost:${PORT}`);
+    console.log(`Server đang chạy tại cổng ${PORT}`);
 });
