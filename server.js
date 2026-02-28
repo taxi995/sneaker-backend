@@ -1,15 +1,8 @@
 const express = require('express');
 const cors = require('cors');
 
-// =========================================================================
-// LƯU Ý QUAN TRỌNG NHẤT:
-// Khóa Secret dưới đây PHẢI lấy từ cùng một tài khoản Stripe 
-// với khóa Publishable (pk_live_...) mà bạn đặt trong file HTML.
-// Ở đây chúng ta sử dụng mã mk_live_ như bạn đã cung cấp.
-// =========================================================================
-const STRIPE_SECRET_KEY = 'mk_1T5OLoGkQs1hUKAxjnBJhJtz'; // Thay bằng toàn bộ mã mk_live_ của bạn
-
-const stripe = require('stripe')(STRIPE_SECRET_KEY); 
+// Cấu hình Stripe Secret Key (BẮT BUỘC DÙNG sk_live_...)
+const stripe = require('stripe')('mk_1T5fItK5zw3LGVcwih92BR4e'); 
 
 const app = express();
 
@@ -22,7 +15,7 @@ app.post('/create-payment-intent', async (req, res) => {
         const { items, shipping } = req.body; 
 
         if (!items || items.length === 0) {
-            return res.status(400).json({ error: "Giỏ hàng của bạn đang trống" });
+            return res.status(400).json({ error: "Your cart is empty" });
         }
 
         // Tính tổng tiền (Tiền hàng + Phí ship)
@@ -40,7 +33,7 @@ app.post('/create-payment-intent', async (req, res) => {
         res.json({ clientSecret: paymentIntent.client_secret });
 
     } catch (error) {
-        console.error("Lỗi Payment Intent:", error);
+        console.error("Payment Intent Error:", error);
         res.status(500).json({ error: error.message });
     }
 });
